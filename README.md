@@ -26,6 +26,14 @@ two-tower valid hit@1 **0.614**; FAISS recall@100 **0.784** vs exact; serving p9
 **Related project:** [GitHub Trend Watcher](https://github.com/Youssef-AMARZOU/github-trend-watcher) —
 free self-hosted trending snapshots + star-spike detection (stdlib-only companion tool).
 
+[![Trend Watcher stars](https://img.shields.io/github/stars/Youssef-AMARZOU/github-trend-watcher?style=flat-square&logo=github)](https://github.com/Youssef-AMARZOU/github-trend-watcher/stargazers)
+[![Trend Watcher release](https://img.shields.io/github/release/Youssef-AMARZOU/github-trend-watcher?style=flat-square&logo=github)](https://github.com/Youssef-AMARZOU/github-trend-watcher/releases)
+[![Trend Watcher last commit](https://img.shields.io/github/last-commit/Youssef-AMARZOU/github-trend-watcher?style=flat-square&logo=github)](https://github.com/Youssef-AMARZOU/github-trend-watcher/commits/main)
+
+**Star trend (both projects):**
+
+[![Star history chart](https://api.star-history.com/svg?repos=Youssef-AMARZOU/Relevio,Youssef-AMARZOU/github-trend-watcher&type=Date)](https://star-history.com/#Youssef-AMARZOU/Relevio&Youssef-AMARZOU/github-trend-watcher&Date)
+
 ---
 
 ## Contents
