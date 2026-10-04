@@ -288,9 +288,10 @@ if __name__ == "__main__":
     parser.add_argument("--processed", default="data/processed")
     parser.add_argument("--n-sessions", type=int, default=100_000)
     parser.add_argument("--model-out", default="models/ranker.txt")
+    parser.add_argument("--importance", default="reports/ranker_importance.json")
     args = parser.parse_args()
     processed = Path(args.processed)
     frame_path = processed / "ranker_train_frame.parquet"
     frame_stats = prepare_training_frame(processed, frame_path, n_sessions=args.n_sessions)
-    train_stats = train_model(frame_path, args.model_out, importance_path="reports/ranker_importance.json")
+    train_stats = train_model(frame_path, args.model_out, importance_path=args.importance)
     print(json.dumps({"frame": frame_stats, "train": train_stats}, indent=2))

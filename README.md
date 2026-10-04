@@ -40,9 +40,10 @@ two-tower valid hit@1 **0.614**; FAISS recall@100 **0.784** vs exact; serving p9
 11. [Drift monitoring](#drift-monitoring-m6)
 12. [MLOps (Docker, MLflow, CI)](#mlops)
 13. [Quickstart](#quickstart)
-14. [Configuration reference](#configuration-reference)
-15. [Make targets](#make-targets)
-16. [Milestones](#milestones)
+14. [Demo: Instacart (1M rows)](#demo-instacart-1m-rows)
+15. [Configuration reference](#configuration-reference)
+16. [Make targets](#make-targets)
+17. [Milestones](#milestones)
 
 ---
 
@@ -548,6 +549,81 @@ real values.
 
 ---
 
+## Demo: Instacart (1M rows)
+
+A self-contained demo on **real public e-commerce data**: the first 1,000,000
+rows of the Instacart market-basket fact table become 94,953 complete orders /
+999,996 events. Every output lands in `data/demo/`, `models/demo/`, and
+`reports/demo/`, so the full-OTTO artifacts are never touched.
+
+### Fetch the data (~130 MB, Kaggle CLI)
+
+```bash
+mkdir -p data/demo/instacart
+for f in order_products__train orders products aisles departments; do
+  kaggle datasets download -d psparks/instacart-market-basket-analysis -f $f.csv -p data/demo/instacart --unzip
+done
+```
+
+### Run the whole demo
+
+```bash
+make demo
+```
+
+Which executes (≈6 min, CPU only):
+
+| Step | Output | Result |
+|---|---|---|
+| `scripts/instacart_to_otto.py` (orders → OTTO JSONL, `--max-rows 1000000`) | `data/demo/otto_train_1m.jsonl` | 94,953 sessions / 999,996 events |
+| ETL (DuckDB) | `data/demo/processed/` | 75,962 train / 18,991 val sessions, temporal 80/20 |
+| covisitation + popularity | `neighbours.parquet`, `popularity.parquet` | 334,271 pairs, 14,277 items with neighbours, 36,473 items |
+| ranker training | `models/demo/ranker.txt` | valid NDCG@10 = 0.538 (228 trees) |
+| offline evaluation | `reports/demo/offline_eval.json` | 17,998 holdout sessions |
+| A/B replay | `reports/demo/ab_replay.json` | **ship**, +15.7% |
+
+### Offline results (17,998 holdout sessions)
+
+| Method | Recall@20 | Hit rate@20 | NDCG@20 |
+|---|---|---|---|
+| popularity | 0.0805 | 0.1381 | 0.0408 |
+| co-visitation | 0.1139 | 0.1858 | 0.0587 |
+| **two-stage** | **0.1337** | **0.2173** | **0.0696** |
+
+A/B replay (co-visitation → two-stage, primary metric `hit20` on clicks,
+n = 17,998): **+15.7% relative lift** (0.294 → 0.340), z = 6.67, p < 0.001,
+Mann–Whitney U confirms after Shapiro/Levene gating, latency guardrail
+p99 = 3.1 ms → **ship**. Power note: 8,967 sessions per arm vs 15,311 needed
+for a 5% MDE, so the run is honestly flagged under-powered even though the
+observed lift dwarfs the MDE.
+
+### Serve the demo
+
+```bash
+PROCESSED_DIR=data/demo/processed MODEL_PATH=models/demo/ranker.txt SERVING_ANN=off MODEL_VERSION=demo PYTHONPATH=src \
+uvicorn otto_rec.serving.app:app --port 8000
+```
+
+`SERVING_ANN=off` because the demo skips the two-tower/FAISS index; the full
+OTTO stack (`make pipeline`, `make ann`) covers dense retrieval.
+
+### How Instacart is shaped into OTTO sessions
+
+- one order = one session; its products ordered by `add_to_cart_order` form the
+  event sequence
+- Instacart records purchases only, so `type` is drawn per order with the same
+  80/10/10 clicks/carts/orders mix as the synthetic sample generator
+  (deterministic per order id)
+- timestamps are synthesized from each order's `order_dow` /
+  `order_hour_of_day` across 2024 so the temporal split and the replay see a
+  realistic date spread
+- the trailing order group is dropped: the 1M-row cut lands mid-order, and a
+  session must be a complete order
+- all demo paths are isolated: re-running `make demo` never touches
+  `data/processed/`, `models/ranker.txt`, or `reports/offline_eval.json`
+
+---
+
 ## Configuration reference
 
 ### `.env` (setup / orchestration)
@@ -582,7 +658,7 @@ real values.
 |---|---|
 | `setup` | `pip install -r requirements-train.txt` |
 | `compile` | `python -m compileall -q src dags scripts tests` |
-| `test` | stdlib unittest suite (74 tests) |
+| `test` | stdlib unittest suite (81 tests) |
 | `lint` | `ruff check src dags scripts tests` |
 | `download` | `scripts/download_otto.py` (Kaggle dataset API) |
 | `etl` | DuckDB ETL → `data/processed` |
@@ -594,6 +670,7 @@ real values.
 | `eval` | offline evaluation → `reports/offline_eval.json` |
 | `ab` | A/B replay → `reports/ab_replay.json` |
 | `pipeline` | `etl covis popularity train eval ab` |
+| `demo` | Instacart 1M-row demo → `data/demo/`, `models/demo/`, `reports/demo/` |
 | `drift` | drift report + gate → `reports/drift.html` |
 | `mlflow-log` | log run to MLflow |
 | `serve` | Uvicorn on `:8000` |

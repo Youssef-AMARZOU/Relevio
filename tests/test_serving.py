@@ -317,6 +317,11 @@ class ServingAppTest(unittest.TestCase):
         with TestClient(app) as client:
             health = client.get("/health").json()
             self.assertTrue(health["pipeline"])
+            # warm-up request so the latency assertion measures steady state,
+            # not the lazy artifact load on the first scored call
+            client.post(
+                "/recommend", json={"session_id": "warm", "k": 10, "history": ["1001"]}
+            )
             response = client.post(
                 "/recommend",
                 json={"session_id": "s1", "k": 10, "history": ["1001", "1002"]},

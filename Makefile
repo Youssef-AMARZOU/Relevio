@@ -1,4 +1,4 @@
-.PHONY: setup compile test lint download etl covis popularity train eval ab two-tower ann pipeline mlflow-log drift serve up down
+.PHONY: setup compile test lint download etl covis popularity train eval ab two-tower ann pipeline demo mlflow-log drift serve up down
 
 setup:
 	pip install -r requirements-train.txt
@@ -40,6 +40,15 @@ ab:
 	PYTHONPATH=src python scripts/run_ab_replay.py --outcomes reports/session_outcomes.parquet --eval-report reports/offline_eval.json --report reports/ab_replay.json
 
 pipeline: etl covis popularity train eval ab
+
+demo:
+	PYTHONPATH=src python scripts/instacart_to_otto.py
+	PYTHONPATH=src python -m otto_rec.features.etl --jsonl data/demo/otto_train_1m.jsonl --out data/demo/processed
+	PYTHONPATH=src python -m otto_rec.retrieval.covisitation --events data/demo/processed/events.parquet --out data/demo/processed/neighbours.parquet
+	PYTHONPATH=src python -m otto_rec.retrieval.popularity --events data/demo/processed/events.parquet --out data/demo/processed/popularity.parquet
+	PYTHONPATH=src python -m otto_rec.ranking.train --processed data/demo/processed --model-out models/demo/ranker.txt --importance reports/demo/ranker_importance.json
+	PYTHONPATH=src python scripts/evaluate.py --processed data/demo/processed --model models/demo/ranker.txt --report reports/demo/offline_eval.json --outcomes reports/demo/session_outcomes.parquet
+	PYTHONPATH=src python scripts/run_ab_replay.py --outcomes reports/demo/session_outcomes.parquet --eval-report reports/demo/offline_eval.json --report reports/demo/ab_replay.json
 
 mlflow-log:
 	PYTHONPATH=src python scripts/log_mlflow.py
