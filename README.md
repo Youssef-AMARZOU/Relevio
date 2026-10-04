@@ -14,9 +14,6 @@ metrics**, serves results through a **FastAPI + Redis** API with **FAISS** dense
 extras and **TreeSHAP** explanations, and closes the loop with a **simulated A/B
 experimentation layer** and **data-drift monitoring**.
 
-> Project context, approved decisions, milestones, and changelog live in the workspace
-> at `My Projects/OTTO Recommender and Search Platform***REMOVED***/README.md`.
-
 **Status:** all milestones M0–M6 are complete and were run end-to-end on the full
 dataset — offline eval OTTO weighted Recall@20 **0.0805** (+18% over co-visitation);
 two-tower valid hit@1 **0.614**; FAISS recall@100 **0.784** vs exact; serving p99
@@ -441,7 +438,7 @@ and analysed:
 
 The Kaggle Facebook bidding dataset was analysed with the same `hypothesis.py`
 module via `scripts/run_kaggle_ab.py` → `reports/kaggle_ab_report.json`
-(report: `My Projects/OTTO Recommender and Search Platform***REMOVED***/Kaggle AB Test Report.md`).
+(report: `My Projects/OTTO Recommender and Search Platform/Kaggle AB Test Report.md`).
 
 ---
 
@@ -709,8 +706,8 @@ OTTO stack (`make pipeline`, `make ann`) covers dense retrieval.
 
 | Document | Location |
 |---|---|
-| Project context, decisions, changelog | workspace `My Projects/OTTO Recommender and Search Platform***REMOVED***/README.md` |
-| Kaggle A/B test report | workspace `My Projects/OTTO Recommender and Search Platform***REMOVED***/Kaggle AB Test Report.md` |
+| Project context, decisions, changelog | workspace `My Projects/OTTO Recommender and Search Platform/README.md` |
+| Kaggle A/B test report | workspace `My Projects/OTTO Recommender and Search Platform/Kaggle AB Test Report.md` |
 | Offline evaluation report | `reports/offline_eval.json` (generated) |
 | A/B replay report | `reports/ab_replay.json` (generated) |
 | ANN quality report | `reports/ann_quality.json` (generated) |
