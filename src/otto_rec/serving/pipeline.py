@@ -26,6 +26,7 @@ model sees at serving time the same distribution it was trained on.
 from __future__ import annotations
 
 import json
+import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -162,7 +163,7 @@ class ServingPipeline:
             "model_trees": len(self._booster.dump_model()["tree_info"]),
             "elapsed_s": round(time.perf_counter() - started, 1),
         }
-        print(f"[serving] pipeline loaded: {stats}", flush=True)
+        print(f"[serving] pipeline loaded: {stats}", file=sys.stderr, flush=True)
         return stats
 
     def _build_popular_pool(self, pop: pd.DataFrame) -> np.ndarray:
@@ -233,7 +234,7 @@ class ServingPipeline:
         which avoids a single 129 M-element global index array and keeps peak
         memory near 2 GB on a constrained host.
         """
-        print("[serving] converting neighbours.parquet (first start only) ...", flush=True)
+        print("[serving] converting neighbours.parquet (first start only) ...", file=sys.stderr, flush=True)
         i_codes = self._encode_column(pq.read_table(neighbours_path, columns=["i"]).column(0))
         j_codes = self._encode_column(pq.read_table(neighbours_path, columns=["j"]).column(0))
         weights = (

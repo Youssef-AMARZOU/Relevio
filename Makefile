@@ -1,4 +1,4 @@
-.PHONY: setup compile test lint download etl covis popularity train eval ab two-tower ann pipeline demo mlflow-log drift serve up down
+.PHONY: setup compile test lint download etl covis popularity train eval ab two-tower ann pipeline demo mlflow-log drift serve mcp up down
 
 setup:
 	pip install -r requirements-train.txt
@@ -58,6 +58,9 @@ drift:
 
 serve:
 	PYTHONPATH=src uvicorn otto_rec.serving.app:app --port 8000
+
+mcp:
+	python mcp_server.py
 
 up:
 	docker compose up --build

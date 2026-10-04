@@ -24,6 +24,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 import time
 from contextlib import asynccontextmanager
 from typing import Literal
@@ -69,28 +70,37 @@ def _load_ann():
     return retriever
 
 
+def init_state(state) -> None:
+    """Load pipeline + ANN onto a state namespace (placeholder mode on failure).
+
+    Shared by the HTTP lifespan below and the MCP server
+    (``otto_rec.serving.mcp_server``); missing artifacts never block boot.
+    """
+    state.pipeline = None
+    state.pipeline_error = None
+    state.ann = None
+    state.ann_error = None
+    try:
+        state.pipeline = _load_pipeline()
+    except FileNotFoundError as exc:
+        state.pipeline_error = str(exc)
+        print(f"[serving] placeholder mode: {exc}", file=sys.stderr, flush=True)
+    except Exception as exc:  # noqa: BLE001 - service must boot without artifacts
+        state.pipeline_error = f"{type(exc).__name__}: {exc}"
+        print(f"[serving] placeholder mode: {state.pipeline_error}", file=sys.stderr, flush=True)
+    try:
+        state.ann = _load_ann()
+    except FileNotFoundError as exc:
+        state.ann_error = str(exc)
+        print(f"[serving] ANN disabled: {exc}", file=sys.stderr, flush=True)
+    except Exception as exc:  # noqa: BLE001 - service must boot without faiss
+        state.ann_error = f"{type(exc).__name__}: {exc}"
+        print(f"[serving] ANN disabled: {state.ann_error}", file=sys.stderr, flush=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.pipeline = None
-    app.state.pipeline_error = None
-    app.state.ann = None
-    app.state.ann_error = None
-    try:
-        app.state.pipeline = _load_pipeline()
-    except FileNotFoundError as exc:
-        app.state.pipeline_error = str(exc)
-        print(f"[serving] placeholder mode: {exc}", flush=True)
-    except Exception as exc:  # noqa: BLE001 - service must boot without artifacts
-        app.state.pipeline_error = f"{type(exc).__name__}: {exc}"
-        print(f"[serving] placeholder mode: {app.state.pipeline_error}", flush=True)
-    try:
-        app.state.ann = _load_ann()
-    except FileNotFoundError as exc:
-        app.state.ann_error = str(exc)
-        print(f"[serving] ANN disabled: {exc}", flush=True)
-    except Exception as exc:  # noqa: BLE001 - service must boot without faiss
-        app.state.ann_error = f"{type(exc).__name__}: {exc}"
-        print(f"[serving] ANN disabled: {app.state.ann_error}", flush=True)
+    init_state(app.state)
     yield
     app.state.pipeline = None
     app.state.ann = None
@@ -258,7 +268,7 @@ def _ann_candidates(items: list[str], events: list[Event] | None, k: int = 50) -
     try:
         hits = retriever.search(_history_items(items, events), k=k)
     except Exception as exc:  # noqa: BLE001 - dense recall must not break /recommend
-        print(f"[serving] ANN candidates failed: {exc}", flush=True)
+        print(f"[serving] ANN candidates failed: {exc}", file=sys.stderr, flush=True)
         return []
     return [hit["item_id"] for hit in hits]
 
@@ -322,7 +332,7 @@ def search(request: SearchRequest) -> SearchResponse:
         try:
             results = retriever.search(history, k=request.k)
         except Exception as exc:  # noqa: BLE001 - fall back to placeholder
-            print(f"[serving] dense search failed: {exc}", flush=True)
+            print(f"[serving] dense search failed: {exc}", file=sys.stderr, flush=True)
     if not results:
         results = _placeholder_candidates(request.query, request.k)
     return SearchResponse(

@@ -14,6 +14,7 @@ Default ``nprobe=512``: measured on the full 1.86M-item index it recovers
 from __future__ import annotations
 
 import json
+import sys
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -156,7 +157,7 @@ class AnnRetriever:
             "n_items": int(len(self._sorted_ids)),
             "index": str(self.index_path),
         }
-        print(f"[serving] ANN retriever loaded: {stats}", flush=True)
+        print(f"[serving] ANN retriever loaded: {stats}", file=sys.stderr, flush=True)
         return stats
 
     @property

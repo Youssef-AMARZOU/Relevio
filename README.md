@@ -410,6 +410,39 @@ Placeholder mode is used automatically when artifacts are absent, or forced with
 
 `/explain` costs ~2.5 s on the first call (shap import), ~35 ms warm.
 
+### MCP server (stdio)
+
+The same four handlers are exposed to MCP clients (Claude Desktop, Claude
+Code, Cursor, Glama Inspector) as tools: `recommend`, `search`, `explain`,
+`health`.
+
+```bash
+python mcp_server.py   # or: make mcp
+```
+
+Client config (paste into `claude_desktop_config.json` / `.cursor/mcp.json`;
+use forward slashes, and an absolute python path if yours is not on PATH):
+
+```json
+{
+  "mcpServers": {
+    "relevio": {
+      "command": "python",
+      "args": ["C:/path/to/Relevio/mcp_server.py"],
+      "env": {
+        "PROCESSED_DIR": "C:/path/to/Relevio/data/demo/processed",
+        "MODEL_PATH": "C:/path/to/Relevio/models/demo/ranker.txt"
+      }
+    }
+  }
+}
+```
+
+Artifacts load lazily on the first tool call through the same env vars as
+the HTTP API; without them every tool still answers in deterministic
+placeholder mode, so a fresh clone is immediately testable (`make demo`
+builds the real demo artifacts first).
+
 ---
 
 ## Experimentation (M5)
@@ -682,6 +715,7 @@ OTTO stack (`make pipeline`, `make ann`) covers dense retrieval.
 | `drift` | drift report + gate → `reports/drift.html` |
 | `mlflow-log` | log run to MLflow |
 | `serve` | Uvicorn on `:8000` |
+| `mcp` | MCP server on stdio (`python mcp_server.py`) |
 | `up` / `down` | `docker compose up --build` / `docker compose down` |
 
 ---
